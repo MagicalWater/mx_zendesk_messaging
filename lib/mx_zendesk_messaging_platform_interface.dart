@@ -24,6 +24,15 @@ abstract class MxZendeskMessagingPlatform extends PlatformInterface {
     _instance = instance;
   }
 
+  /// 當前的未讀訊息數量
+  /// 此數量會跟隨著以下兩點更新
+  /// 1. [unreadCountStream] 未讀訊息數量變更事件通知
+  /// 2. 呼叫[getUnreadMessageCount]跟伺服器獲取實際未讀訊息後更新
+  int get unreadCount;
+
+  /// 未讀訊息數量變更串流
+  Stream<int> get unreadCountStream;
+
   /// 初始化
   /// 詳情參閱官方文件 [URL](https://developer.zendesk.com/documentation/zendesk-web-widget-sdks/sdks/android/advanced_integration/)
   Future<void> initialize({

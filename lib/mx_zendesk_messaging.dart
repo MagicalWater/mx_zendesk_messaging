@@ -5,6 +5,13 @@ import 'mx_zendesk_messaging_platform_interface.dart';
 export 'src/model/zendesk_auth_user.dart';
 
 class MxZendeskMessaging {
+
+  /// 當前的未讀訊息數量
+  int get unreadCount => MxZendeskMessagingPlatform.instance.unreadCount;
+
+  /// 未讀訊息數量變更串流
+  Stream<int> get unreadCountStream => MxZendeskMessagingPlatform.instance.unreadCountStream;
+
   /// 初始化
   /// 詳情參閱官方文件 [URL](https://developer.zendesk.com/documentation/zendesk-web-widget-sdks/sdks/android/advanced_integration/)
   Future<void> initialize({

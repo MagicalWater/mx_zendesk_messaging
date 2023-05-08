@@ -63,6 +63,12 @@ public class MxZendeskMessagingPlugin: NSObject, FlutterPlugin {
             return
         case .printLog:
             break
+        case .eventUnreadCount:
+            break
+        case .eventAuthFail:
+            break
+        case .eventUnknown:
+            break
         case .none:
             break
         }

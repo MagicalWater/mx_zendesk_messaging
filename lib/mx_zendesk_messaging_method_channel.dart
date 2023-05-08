@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -23,6 +24,22 @@ class MethodChannelMxZendeskMessaging extends MxZendeskMessagingPlatform {
 
   /// 等待回調
   final _waitCallbacks = <int, void Function(MethodCall call)>{};
+
+  /// 未讀訊息數量
+  @override
+  int get unreadCount => _unreadCount;
+
+  int _unreadCount = 0;
+
+  /// 未讀訊息數量串流
+  @override
+  Stream<int> get unreadCountStream {
+    return _unreadCountBroadcastStream ??=
+        _unreadCountStreamController.stream.asBroadcastStream();
+  }
+
+  Stream<int>? _unreadCountBroadcastStream;
+  final _unreadCountStreamController = StreamController<int>();
 
   @override
   Future<void> initialize({
@@ -109,7 +126,11 @@ class MethodChannelMxZendeskMessaging extends MxZendeskMessagingPlatform {
   Future<int> getUnreadMessageCount() async {
     return methodChannel
         .invokeMethod(ZendeskChannelMethod.getUnreadMessageCount.name)
-        .then((value) => value as int);
+        .then((value) => value as int)
+        .then((value) {
+      _unreadCount = value;
+      return value;
+    });
   }
 
   @override
@@ -128,6 +149,41 @@ class MethodChannelMxZendeskMessaging extends MxZendeskMessagingPlatform {
     // print('回調: ${call.method}, id = ${callId}, args = ${call.arguments}');
     if (callId != null) {
       _waitCallbacks[callId]?.call(call);
+    } else {
+      final method = ZendeskChannelMethod.values
+          .firstWhereOrNull((element) => element.name == call.method);
+      if (method != null) {
+        switch (method) {
+          case ZendeskChannelMethod.printLog:
+            if (kDebugMode) {
+              final message = call.arguments?['content'];
+              if (message != null) {
+                print('$message');
+              }
+            }
+            break;
+          case ZendeskChannelMethod.eventUnreadCount:
+            _unreadCount = call.arguments!['content'] as int;
+            _unreadCountStreamController.add(_unreadCount);
+            break;
+          case ZendeskChannelMethod.eventAuthFail:
+            if (kDebugMode) {
+              print('[MethodChannelMxZendeskMessaging] - 驗證訊息錯誤: ${call.arguments}');
+            }
+            break;
+          case ZendeskChannelMethod.eventUnknown:
+            if (kDebugMode) {
+              print('[MethodChannelMxZendeskMessaging] - 未知訊息事件: ${call.arguments}');
+            }
+            break;
+          default:
+            // 不應該收到其餘method的訊息
+            if (kDebugMode) {
+              print('[MethodChannelMxZendeskMessaging] - 錯誤的方法回調: $method');
+            }
+            break;
+        }
+      }
     }
   }
 

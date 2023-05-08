@@ -6,7 +6,10 @@ enum class ZendeskChannelMethod(val rawValue: String) {
     LoginUser("loginUser"),
     LogoutUser("logoutUser"),
     GetUnreadMessageCount("getUnreadMessageCount"),
-    PrintLog("printLog");
+    PrintLog("printLog"),
+    EventUnreadCount("eventUnreadCount"),
+    EventAuthFail("eventAuthFail"),
+    EventUnknown("eventUnknown");
 
     companion object {
         fun fromRawValue(rawValue: String): ZendeskChannelMethod? {

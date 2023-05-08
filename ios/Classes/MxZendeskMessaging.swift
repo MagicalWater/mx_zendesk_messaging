@@ -29,6 +29,8 @@ public class MxZendeskMessaging: NSObject {
                 self.printLog("\(self.TAG) - initialize failure - \(error.localizedDescription)\n")
                 argsMap["error"] = error.localizedDescription
             } else {
+                // 初始化成功後加入事件觀察
+                self.setEventObservable()
                 onComplete(true)
                 self.printLog("\(self.TAG) - initialize success")
             }
@@ -92,6 +94,33 @@ public class MxZendeskMessaging: NSObject {
     
     func getUnreadMessageCount() -> Int {
         return Zendesk.instance?.messaging?.getUnreadMessageCount() ?? 0
+    }
+    
+    // 設置事件觀察
+    func setEventObservable() {
+        removeEventObservable()
+        printLog("\(self.TAG) - 加入事件觀察 \(Zendesk.instance != nil)")
+        Zendesk.instance?.addEventObserver(self) { event in
+            switch event {
+            case .unreadMessageCountChanged(let unreadCount):
+                self.channel.invokeMethod(ZendeskChannelMethod.eventUnreadCount.rawValue, arguments: ["content": unreadCount])
+                break
+            case .authenticationFailed(let error as NSError):
+                print("Authentication error received: \(error)")
+                print("Domain: \(error.domain)")
+                print("Error code: \(error.code)")
+                print("Localized Description: \(error.localizedDescription)")
+                self.channel.invokeMethod(ZendeskChannelMethod.eventAuthFail.rawValue, arguments: ["code": error.code, "domain": error.domain, "error": error.localizedDescription])
+                break
+            @unknown default:
+                self.channel.invokeMethod(ZendeskChannelMethod.eventUnknown.rawValue, arguments: ["content": "\(event)"])
+                break
+            }
+        }
+    }
+    
+    func removeEventObservable() {
+        Zendesk.instance?.removeEventObserver(self)
     }
     
     func printLog(_ text: String) {

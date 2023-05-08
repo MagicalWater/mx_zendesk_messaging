@@ -45,6 +45,12 @@ class MockMxZendeskMessagingPlatform
   Future<void> show() {
     throw UnimplementedError();
   }
+
+  @override
+  int get unreadCount => throw UnimplementedError();
+
+  @override
+  Stream<int> get unreadCountStream => throw UnimplementedError();
 }
 
 void main() {

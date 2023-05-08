@@ -6,6 +6,8 @@ import io.flutter.plugin.common.MethodChannel
 import zendesk.android.Zendesk
 import zendesk.android.ZendeskResult
 import zendesk.android.ZendeskUser
+import zendesk.android.events.ZendeskEvent
+import zendesk.android.events.ZendeskEventListener
 import zendesk.messaging.android.DefaultMessagingFactory
 
 class MxZendeskMessaging(
@@ -23,6 +25,8 @@ class MxZendeskMessaging(
     ) {
         printLog("$tag - Channel Key - $channelKey")
         Zendesk.initialize(context, channelKey, successCallback = { value ->
+            // 初始化成功後加入事件觀察
+            setEventObservable()
             val args = mapOf<String, Any?>("callId" to callId)
             onComplete(true)
             printLog("$tag - initialize success - $value")
@@ -73,6 +77,41 @@ class MxZendeskMessaging(
             args["error"] = result.error.message
         }
         channel.invokeMethod(ZendeskChannelMethod.LogoutUser.rawValue, args)
+    }
+
+    // 事件監聽
+    private val zendeskEventListener: ZendeskEventListener = ZendeskEventListener { zendeskEvent ->
+        when (zendeskEvent) {
+            is ZendeskEvent.UnreadMessageCountChanged -> {
+                channel.invokeMethod(
+                    ZendeskChannelMethod.EventUnreadCount.rawValue,
+                    mapOf("content" to zendeskEvent.currentUnreadCount)
+                )
+            }
+            is ZendeskEvent.AuthenticationFailed -> {
+                channel.invokeMethod(
+                    ZendeskChannelMethod.EventAuthFail.rawValue,
+                    mapOf("error" to zendeskEvent.error.message)
+                )
+            }
+            else -> {
+                channel.invokeMethod(
+                    ZendeskChannelMethod.EventUnknown.rawValue,
+                    mapOf("content" to zendeskEvent.toString())
+                )
+            }
+        }
+    }
+
+    // 設置事件觀察
+    fun setEventObservable() {
+        removeEventObservable()
+        printLog("$tag - 加入事件觀察")
+        Zendesk.instance.addEventListener(zendeskEventListener)
+    }
+
+    private fun removeEventObservable() {
+        Zendesk.instance.removeEventListener(zendeskEventListener)
     }
 
     private fun printLog(text: Any?) {
